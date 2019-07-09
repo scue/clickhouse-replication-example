@@ -40,8 +40,16 @@
         </ontime_cluster>
     </remote_servers>
     <zookeeper>
-        <node>
-            <host>zookeeper</host>
+        <node index="1">
+            <host>zoo1</host>
+            <port>2181</port>
+        </node>
+        <node index="2">
+            <host>zoo2</host>
+            <port>2181</port>
+        </node>
+        <node index="3">
+            <host>zoo3</host>
             <port>2181</port>
         </node>
     </zookeeper>
