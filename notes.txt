@@ -1,3 +1,277 @@
+
+CREATE TABLE user (
+    `Id` UInt32,
+    `Name` String
+)
+ENGINE = Distributed(ontime_cluster, default, hits);
+
+# node status
+docker-compose exec zoo1 zkServer.sh status
+docker-compose exec zoo2 zkServer.sh status
+docker-compose exec zoo3 zkServer.sh status
+
+# zookeeper client
+docker-compose exec zoo1 zkCli.sh -server zoo1:2181,zoo2:2181,zoo3:2181
+# ls
+[zk: zoo1:2181,zoo2:2181,zoo3:2181(CONNECTED) 0] ls -R /
+/
+/clickhouse
+/zookeeper
+/clickhouse/task_queue
+/clickhouse/task_queue/ddl
+/zookeeper/config
+/zookeeper/quota
+
+
+# get
+[zk: zoo1:2181,zoo2:2181,zoo3:2181(CONNECTED) 10] get /zookeeper/config
+server.1=zoo1:2888:3888:participant;0.0.0.0:2181
+server.2=0.0.0.0:2888:3888:participant;0.0.0.0:2181
+server.3=zoo3:2888:3888:participant;0.0.0.0:2181
+version=0
+
+# stat
+[zk: zoo1:2181,zoo2:2181,zoo3:2181(CONNECTED) 12] stat /clickhouse
+cZxid = 0x100000003
+ctime = Tue Jul 09 07:06:18 UTC 2019
+mZxid = 0x100000003
+mtime = Tue Jul 09 07:06:18 UTC 2019
+pZxid = 0x100000005
+cversion = 1
+dataVersion = 0
+aclVersion = 0
+ephemeralOwner = 0x0
+dataLength = 0
+numChildren = 1
+
+# ls and status
+# use ls2, equal to `ls -s`
+[zk: zoo1:2181,zoo2:2181,zoo3:2181(CONNECTED) 18] ls2 /clickhouse
+'ls2' has been deprecated. Please use 'ls [-s] path' instead.
+[task_queue]
+cZxid = 0x100000003
+ctime = Tue Jul 09 07:06:18 UTC 2019
+mZxid = 0x100000003
+mtime = Tue Jul 09 07:06:18 UTC 2019
+pZxid = 0x100000005
+cversion = 1
+dataVersion = 0
+aclVersion = 0
+ephemeralOwner = 0x0
+dataLength = 0
+numChildren = 1
+
+# create
+[zk: zoo1:2181,zoo2:2181,zoo3:2181(CONNECTED) 19] create /scue scue
+Created /scue
+
+# create auto increment sequence
+[zk: zoo1:2181,zoo2:2181,zoo3:2181(CONNECTED) 22] create -s /scue/seq
+Created /scue/seq0000000000
+[zk: zoo1:2181,zoo2:2181,zoo3:2181(CONNECTED) 23] create -s /scue/seq
+Created /scue/seq0000000001
+[zk: zoo1:2181,zoo2:2181,zoo3:2181(CONNECTED) 24] create -s /scue/seq
+Created /scue/seq0000000002
+
+# create temp
+[zk: zoo1:2181,zoo2:2181,zoo3:2181(CONNECTED) 25] create -e /scue/tmp
+Created /scue/tmp
+
+# set & get
+[zk: zoo1:2181,zoo2:2181,zoo3:2181(CONNECTED) 29] set /scue/tmp temp
+[zk: zoo1:2181,zoo2:2181,zoo3:2181(CONNECTED) 30] get /scue/tmp
+temp
+
+
+docker-compose up -d
+
+# 单点测试(ch-server-1)
+docker-compose exec ch-client /usr/bin/clickhouse-client --host ch-server-1 -mn
+> create database test;
+> use test;
+> CREATE TABLE ontime_local
+(
+    Year UInt16,
+    Quarter UInt8,
+    Month UInt8,
+    DayofMonth UInt8,
+    DayOfWeek UInt8,
+    FlightDate Date,
+    UniqueCarrier FixedString(7),
+    AirlineID Int32,
+    Carrier FixedString(2),
+    TailNum String,
+    FlightNum String,
+    OriginAirportID Int32,
+    OriginAirportSeqID Int32,
+    OriginCityMarketID Int32,
+    Origin FixedString(5),
+    OriginCityName String,
+    OriginState FixedString(2),
+    OriginStateFips String,
+    OriginStateName String,
+    OriginWac Int32,
+    DestAirportID Int32,
+    DestAirportSeqID Int32,
+    DestCityMarketID Int32,
+    Dest FixedString(5),
+    DestCityName String,
+    DestState FixedString(2),
+    DestStateFips String,
+    DestStateName String,
+    DestWac Int32,
+    CRSDepTime Int32,
+    DepTime Int32,
+    DepDelay Int32,
+    DepDelayMinutes Int32,
+    DepDel15 Int32,
+    DepartureDelayGroups String,
+    DepTimeBlk String,
+    TaxiOut Int32,
+    WheelsOff Int32,
+    WheelsOn Int32,
+    TaxiIn Int32,
+    CRSArrTime Int32,
+    ArrTime Int32,
+    ArrDelay Int32,
+    ArrDelayMinutes Int32,
+    ArrDel15 Int32,
+    ArrivalDelayGroups Int32,
+    ArrTimeBlk String,
+    Cancelled UInt8,
+    CancellationCode FixedString(1),
+    Diverted UInt8,
+    CRSElapsedTime Int32,
+    ActualElapsedTime Int32,
+    AirTime Int32,
+    Flights Int32,
+    Distance Int32,
+    DistanceGroup UInt8,
+    CarrierDelay Int32,
+    WeatherDelay Int32,
+    NASDelay Int32,
+    SecurityDelay Int32,
+    LateAircraftDelay Int32,
+    FirstDepTime String,
+    TotalAddGTime String,
+    LongestAddGTime String,
+    DivAirportLandings String,
+    DivReachedDest String,
+    DivActualElapsedTime String,
+    DivArrDelay String,
+    DivDistance String,
+    Div1Airport String,
+    Div1AirportID Int32,
+    Div1AirportSeqID Int32,
+    Div1WheelsOn String,
+    Div1TotalGTime String,
+    Div1LongestGTime String,
+    Div1WheelsOff String,
+    Div1TailNum String,
+    Div2Airport String,
+    Div2AirportID Int32,
+    Div2AirportSeqID Int32,
+    Div2WheelsOn String,
+    Div2TotalGTime String,
+    Div2LongestGTime String,
+    Div2WheelsOff String,
+    Div2TailNum String,
+    Div3Airport String,
+    Div3AirportID Int32,
+    Div3AirportSeqID Int32,
+    Div3WheelsOn String,
+    Div3TotalGTime String,
+    Div3LongestGTime String,
+    Div3WheelsOff String,
+    Div3TailNum String,
+    Div4Airport String,
+    Div4AirportID Int32,
+    Div4AirportSeqID Int32,
+    Div4WheelsOn String,
+    Div4TotalGTime String,
+    Div4LongestGTime String,
+    Div4WheelsOff String,
+    Div4TailNum String,
+    Div5Airport String,
+    Div5AirportID Int32,
+    Div5AirportSeqID Int32,
+    Div5WheelsOn String,
+    Div5TotalGTime String,
+    Div5LongestGTime String,
+    Div5WheelsOff String,
+    Div5TailNum String
+)
+ENGINE = MergeTree(FlightDate, (Year, FlightDate), 8192);
+
+# ==> 单点测试
+# 导入数据至单点(ch-server-1)
+xz -v -c -d < ../ontime.csv.xz | docker-compose exec -T ch-client clickhouse-client --host ch-server-1 --query="INSERT INTO test.ontime_local FORMAT CSV"
+
+# 暴力测试一下
+> select count(*) from test.ontime_local;
+> SELECT
+    OriginCityName,
+    DestCityName,
+    count(*) AS flights,
+    bar(flights, 0, 20000, 40)
+FROM test.ontime_local
+WHERE Year IN (2014)
+GROUP BY
+    OriginCityName,
+    DestCityName
+ORDER BY flights DESC
+LIMIT 10;
+> SELECT
+    OriginCityName,
+    count() AS c,
+    avg(DepDelay > 60) AS delays
+FROM test.ontime_local
+GROUP BY OriginCityName
+HAVING c > 100000
+ORDER BY delays DESC
+LIMIT 10;
+SELECT
+    OriginCityName,
+    count() AS c,
+    round(avg(DepDelay > 60) * 100, 2) AS delays
+FROM test.ontime_local
+GROUP BY OriginCityName
+HAVING c > 100000
+ORDER BY delays DESC
+LIMIT 10;
+> SELECT avg(c1)
+FROM
+(
+    SELECT
+        Year,
+        Month,
+        count(*) AS c1
+    FROM test.ontime_local
+    GROUP BY
+        Year,
+        Month
+)
+
+
+# ==> 分布式测试：3分片、1副本(3 shard, 1 replica)
+docker-compose rm -s -f && rm -rf data
+cp config.1replica.xml config.xml
+docker-compose up -d
+./schema-1replica.sh # 每个集群实例都需要创建相同的local tables
+
+# ==> 分布式测试：3分片、2副本(3 shard, 2 replica)
+docker-compose rm -s -f && rm -rf data
+cp config.2replica.xml config.xml
+docker-compose up -d
+./schema-2replica.sh # 每个集群实例都需要创建相同的local tables
+
+# 查看集群状态
+> select * from system.clusters;
+
+# 查看集群状态(快捷命令)
+docker-compose exec ch-client /usr/bin/clickhouse-client --host ch-server-3 --query="select * from system.clusters;"
+
+# ---------------------- OLD ---------------------- #
 xz -v -c -d < ~/Downloads/ontime.csv.xz | docker exec -i clickhouse_ch-client_1 /usr/bin/clickhouse-client --host ch-server-1 --query="INSERT INTO ontime FORMAT CSV"
 
 
